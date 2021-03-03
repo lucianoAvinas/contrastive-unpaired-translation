@@ -129,7 +129,16 @@ def get_transform(opt, params=None, grayscale=False, method=Image.BICUBIC, conve
         elif 'flip' in params:
             transform_list.append(transforms.Lambda(lambda img: __flip(img, params['flip'])))
 
+    if 'normalize' in opt.preprocess:
+        transform_list += [transforms.Lambda(lambda img: (img-img.min())/img.max())]
+
+    if opt.zaxis_loc != 1:
+        axes = [i for i in range(4) if i != opt.zaxis_loc]
+        axes.insert(1, opt.zaxis_loc)
+        transform_list += [transforms.Lambda(lambda img: np.transpose(img, axes))]
+
     if convert:
+        pass
         #if grayscale:
         #    transform_list += [transforms.Normalize((0.5,), (0.5,), (0.5,))]
         #else:

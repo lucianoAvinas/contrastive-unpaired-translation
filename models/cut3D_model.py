@@ -4,6 +4,7 @@ from .base_model import BaseModel
 from . import networks3D
 from .patchnce import PatchNCELoss
 import util.util as util
+import torch.utils.checkpoint as checkpoint
 
 
 class CUT3DModel(BaseModel):

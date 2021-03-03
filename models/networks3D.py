@@ -49,7 +49,10 @@ class Downsample(nn.Module):
         filt = get_filter(filt_size=self.filt_size)
         self.register_buffer('filt', filt[None, None, :, :, :].repeat((self.channels, 1, 1, 1, 1)))
 
-        self.pad = get_pad_layer(pad_type)(self.pad_sizes)
+        if pad_type == 'replicate': # Changed from 'reflect'
+            self.pad = nn.ReplicationPad3d(self.pad_sizes)
+        else:
+            self.pad = nn.ConstantPad3d(self.pad_sizes, 0)
 
     def forward(self, inp):
         if(self.filt_size == 1):
@@ -84,7 +87,11 @@ class Upsample(nn.Module):
         filt = get_filter(filt_size=self.filt_size) * (stride**2)
         self.register_buffer('filt', filt[None, None, :, :, :].repeat((self.channels, 1, 1, 1, 1)))
 
-        self.pad = get_pad_layer(pad_type)([1, 1, 1, 1, 1, 1])
+        #self.pad = get_pad_layer(pad_type, [1, 1, 1, 1, 1, 1])
+        if pad_type == 'replicate': # Changed from 'reflect'
+            self.pad = nn.ReplicationPad3d([1, 1, 1, 1, 1, 1])
+        else:
+            self.pad = nn.ConstantPad3d([1, 1, 1, 1, 1, 1], 0)
 
     def forward(self, inp):
         ret_val = F.conv_transpose3d(self.pad(inp), self.filt, stride=self.stride, padding=1 + self.pad_size, groups=inp.shape[1])[:, :, 1:, 1:, 1:]
@@ -94,13 +101,14 @@ class Upsample(nn.Module):
             return ret_val[:, :, :-1, :-1, :-1]
 
 
-def get_pad_layer(pad_type):
+def get_pad_layer(pad_type, pad_size):
     if(pad_type in ['refl', 'reflect']): # NOT CURRENTLY IMPLEMENTED IN 3D
-        PadLayer = lambda x: lambda inp: F.pad(inp, x, mode='reflect')
+        raise Exception('NOT CURRENTLY IMPLEMENTED IN 3D')
+        # PadLayer = lambda x: lambda inp: F.pad(inp, x, mode='reflect')
     elif(pad_type in ['repl', 'replicate']):
-        PadLayer = lambda x: lambda inp: F.pad(inp, x, mode='replicate')
+        PadLayer = nn.ReplicationPad3d(padding=pad_size)
     elif(pad_type == 'zero'):
-        PadLayer = lambda x: lambda inp: F.pad(inp, x, mode='constant')
+        PadLayer = nn.ConstantPad3d(pad_size, 0)
     else:
         print('Pad type [%s] not recognized' % pad_type)
     return PadLayer
@@ -791,9 +799,9 @@ class Conv3dBlock(nn.Module):
         self.use_bias = True
         # initialize padding
         if pad_type == 'replicate': # Changed from 'reflect'
-            self.pad = get_pad_layer(pad_type)
+            self.pad = nn.ReplicationPad3d(padding)
         elif pad_type == 'zero':
-            self.pad = get_pad_layer('constant')
+            self.pad = nn.ConstantPad3d(padding, 0)
         else:
             assert 0, "Unsupported padding type: {}".format(pad_type)
 

@@ -37,6 +37,7 @@ class Unaligned3DDataset(BaseDataset3D):
         self.B_paths = sorted(make_dataset(self.dir_B, opt.max_dataset_size))    # load images from '/path/to/data/trainB'
         self.A_size = len(self.A_paths)  # get the size of dataset A
         self.B_size = len(self.B_paths)  # get the size of dataset B
+        self.z_loc = opt.zaxis_loc
 
     def __getitem__(self, index):
         """Return a data point and its metadata information.
@@ -63,6 +64,17 @@ class Unaligned3DDataset(BaseDataset3D):
             A_img = np.expand_dims(A_img, axis=0)
         if len(B_img.shape) != 4:
             B_img = np.expand_dims(B_img, axis=0)
+
+        if A_img.shape[self.z_loc] < B_img.shape[self.z_loc]:
+            pads = [[0,0]] * 3
+            pad_diff = B_img.shape[self.z_loc] - A_img.shape[self.z_loc]
+            pads.insert(self.z_loc * 2, [pad_diff//2, pad_diff//2 + pad_diff%2]) # if larger than array will insert to the end
+            A_img = np.pad(A_img, pads)
+        elif A_img.shape[self.z_loc] > B_img.shape[self.z_loc]:
+            pads = [[0,0]] * 3
+            pad_diff = A_img.shape[self.z_loc] - B_img.shape[self.z_loc]
+            pads.insert(self.z_loc * 2, [pad_diff//2, pad_diff//2 + pad_diff%2]) # if larger than array will insert to the end
+            B_img = np.pad(B_img, pads)
 
         # Apply image transformation
         # For FastCUT mode, if in finetuning phase (learning rate is decaying),
