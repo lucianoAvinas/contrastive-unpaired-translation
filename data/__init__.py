@@ -13,6 +13,7 @@ See our template dataset class 'template_dataset.py' for more details.
 import importlib
 import torch.utils.data
 from data.base_dataset import BaseDataset
+from data.base3D_dataset import BaseDataset3D
 
 
 def find_dataset_using_name(dataset_name):
@@ -29,7 +30,7 @@ def find_dataset_using_name(dataset_name):
     target_dataset_name = dataset_name.replace('_', '') + 'dataset'
     for name, cls in datasetlib.__dict__.items():
         if name.lower() == target_dataset_name.lower() \
-           and issubclass(cls, BaseDataset):
+           and (issubclass(cls, BaseDataset) or issubclass(cls, BaseDataset3D)):
             dataset = cls
 
     if dataset is None:
